@@ -147,6 +147,14 @@ public final class HarnessClient implements ClientModInitializer {
 						"tp @p 2.5 -60 0.5 -90 0");
 				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
 			}
+			case "sweep" -> {
+				run(mc,
+						"fill -2 -61 -4 34 -55 4 minecraft:stone",
+						"fill 0 -60 -3 32 -57 3 minecraft:air",
+						"setblock 32 -60 0 minecraft:torch",
+						"tp @p 22.0 -60 0.5 -90 0");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+			}
 			case "lamp" -> {
 				run(mc,
 						"fill -6 -61 14 6 -55 26 minecraft:stone",
@@ -165,7 +173,7 @@ public final class HarnessClient implements ClientModInitializer {
 				commands.add("fill -20 -60 -20 20 -60 40 minecraft:air");
 				for (int x = -12; x <= 12; x++) {
 					for (int z = 6; z <= 36; z++) {
-						commands.add("summon minecraft:zombie " + x + ".5 -60 " + z + ".5 {NoAI:1b,Silent:1b,PersistenceRequired:1b}");
+						commands.add("summon minecraft:villager " + x + ".5 -60 " + z + ".5 {NoAI:1b,Silent:1b,PersistenceRequired:1b}");
 					}
 				}
 				for (int x = -12; x <= 12; x += 6) {
@@ -187,6 +195,7 @@ public final class HarnessClient implements ClientModInitializer {
 			case "candle" -> runCandle(mc);
 			case "lamp" -> runLamp(mc);
 			case "crowd" -> runCrowd(mc);
+			case "sweep" -> runSweep(mc);
 			default -> next(State.DONE);
 		}
 	}
@@ -226,6 +235,59 @@ public final class HarnessClient implements ClientModInitializer {
 		}
 	}
 
+	private static final int SWEEP_STEPS = 17;
+	private static final int SWEEP_HOLD = 40;
+
+	/**
+	 * Moves the player across three block borders in quarter block steps and holds each spot for two seconds,
+	 * then reads the finished frame. Works at any frame rate, so it also covers slow shader packs.
+	 */
+	private void runSweep(Minecraft mc) {
+		int cycle = SWEEP_STEPS * SWEEP_HOLD;
+		int t = ticksInState - 1;
+		if (t == 0) {
+			startPhase(mc, "vanilla", false);
+		} else if (t == cycle) {
+			startPhase(mc, "smooth", true);
+		} else if (t == 2 * cycle) {
+			endScene(mc);
+			return;
+		}
+
+		int step = (t % cycle) / SWEEP_HOLD;
+		int inStep = t % SWEEP_HOLD;
+		double x = 22.0 + step * 0.25;
+		if (inStep == 0) {
+			mc.player.setPos(x, FLOOR, 0.5);
+			run(mc, String.format(Locale.ROOT, "tp @p %.2f -60 0.5 -90 0", x));
+		} else if (inStep == SWEEP_HOLD - 1) {
+			float partialTick = mc.getTimer().getGameTimeDeltaPartialTick(false);
+			int light = mc.getEntityRenderDispatcher().getPackedLightCoords(mc.player, partialTick);
+			try (com.mojang.blaze3d.platform.NativeImage image = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
+				int w = image.getWidth();
+				int h = image.getHeight();
+				double sum = 0.0;
+				int count = 0;
+				// torso below the screen center, image rows start at the top
+				for (int py = h / 2 + h / 12; py < h / 2 + h / 6; py++) {
+					for (int px = w / 2 - w / 60; px < w / 2 + w / 60; px++) {
+						int abgr = image.getPixelRGBA(px, py);
+						sum += 0.2126 * (abgr & 0xFF) + 0.7152 * (abgr >> 8 & 0xFF) + 0.0722 * (abgr >> 16 & 0xFF);
+						count++;
+					}
+				}
+				if (rows.isEmpty()) {
+					rows.add("phase,frame,nanos,x,block_units,sky_units,luma");
+				}
+				rows.add(String.format(Locale.ROOT, "%s,%d,%d,%.4f,%d,%d,%.3f", phase, step, System.nanoTime(), mc.player.getX(),
+						light & 0xFFFF, light >>> 16, sum / count));
+			}
+			if (step == 8) {
+				Screenshot.grab(mc.gameDirectory, "harness-sweep-" + phase + ".png", mc.getMainRenderTarget(), component -> { });
+			}
+		}
+	}
+
 	private static void walk(Minecraft mc, float yaw) {
 		mc.player.setYRot(yaw);
 		mc.player.setXRot(0f);
@@ -235,8 +297,14 @@ public final class HarnessClient implements ClientModInitializer {
 	/** a torch next to a double chest turns on and off every 2 seconds */
 	private void runLamp(Minecraft mc) {
 		if (ticksInState == 1) {
+			LightUpdate.config().debugStats = true;
+			LightStats.setEnabled(true);
 			startPhase(mc, "vanilla", false);
 			toggles = 0;
+		}
+
+		if (ticksInState % 20 == 0) {
+			log(phase + " " + LightStats.line());
 		}
 
 		if (ticksInState % 40 == 0) {
@@ -254,12 +322,19 @@ public final class HarnessClient implements ClientModInitializer {
 		}
 	}
 
-	/** 20 seconds without and 20 seconds with lightupdate in front of 775 zombies */
+	/** 20 seconds without and 20 seconds with lightupdate in front of 775 villagers, peaceful removes hostile mobs */
 	private void runCrowd(Minecraft mc) {
 		if (ticksInState == 1) {
 			LightUpdate.config().debugStats = true;
 			LightStats.setEnabled(true);
 			startPhase(mc, "vanilla", false);
+			// the stats time each update with two nanoTime calls, measure that cost to subtract it
+			long sink = 0L;
+			long started = System.nanoTime();
+			for (int i = 0; i < 2_000_000; i++) {
+				sink += System.nanoTime();
+			}
+			log(String.format(Locale.ROOT, "nanoTime pair costs %.1f ns (%d)", 2.0 * (System.nanoTime() - started) / 2_000_000.0, sink & 1));
 		}
 
 		if (ticksInState % 20 == 0) {

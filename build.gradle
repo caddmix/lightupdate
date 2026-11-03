@@ -66,11 +66,24 @@ dependencies {
 
 	if (project.hasProperty('compat')) {
 		// the renderer stack most 1.21.1 packs run, for compat checks in the dev client
-		modLocalRuntime 'maven.modrinth:sodium:mc1.21.1-0.8.13-fabric'
-		modLocalRuntime 'maven.modrinth:iris:1.8.14-beta.1+1.21.1-fabric'
-		modLocalRuntime 'maven.modrinth:immediatelyfast:1.6.15+1.21.1-fabric'
-		modLocalRuntime 'maven.modrinth:entityculling:1.11.3'
+		modLocalRuntime 'maven.modrinth:sodium:SMxNOGZ6' // 0.8.13
+		modLocalRuntime 'maven.modrinth:iris:bAo1Qhte' // 1.8.14-beta.1
+		modLocalRuntime 'maven.modrinth:immediatelyfast:aLnBqxFW' // 1.6.15
+		modLocalRuntime 'maven.modrinth:entityculling:yllJFBpU' // 1.11.3
 	}
+}
+
+// production style harness jar (intermediary names) for launching next to real release jars of other mods
+def harnessJar = tasks.register('harnessJar', Jar) {
+	from sourceSets.harness.output
+	archiveClassifier = 'harness-dev'
+}
+
+tasks.register('remapHarnessJar', net.fabricmc.loom.task.RemapJarTask) {
+	dependsOn harnessJar
+	inputFile = harnessJar.flatMap { it.archiveFile }
+	archiveClassifier = 'harness'
+	addNestedDependencies = false
 }
 
 processResources {

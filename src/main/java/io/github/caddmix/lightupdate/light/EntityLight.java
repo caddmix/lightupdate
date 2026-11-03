@@ -17,8 +17,8 @@ import net.minecraft.world.phys.Vec3;
  * changes the blend cannot explain, like a torch placed next to a mob.
  */
 public final class EntityLight {
-	/** resample at least this often, for light engines that skip the change callback */
-	private static final long RESAMPLE_NANOS = 250_000_000L;
+	/** resample at least this often, a backstop for light engines that skip the change callback */
+	private static final long RESAMPLE_NANOS = 2_000_000_000L;
 	/** render thread only, see the thread check in {@link #smooth} */
 	private static final BlockPos.MutableBlockPos POS = new BlockPos.MutableBlockPos();
 
@@ -54,6 +54,16 @@ public final class EntityLight {
 		long cell = BlockPos.asLong(bx, by, bz);
 		int epoch = LightEpochs.get(bx >> 4, by >> 4, bz >> 4);
 		long previousCell = state.cell;
+
+		// standing still with nothing changed around it, the last result still holds
+		if (state.settled && probe.x == state.probeX && probe.y == state.probeY && probe.z == state.probeZ
+				&& original == state.original && epoch == state.epoch && cell == previousCell
+				&& now - state.sampledNanos <= RESAMPLE_NANOS && FrameClock.continuous(state.nanos)) {
+			state.frame = frame;
+			state.nanos = now;
+			LightStats.entity(started, false);
+			return state.packed;
+		}
 
 		boolean sampled = false;
 		if (cell != previousCell || epoch != state.epoch || now - state.sampledNanos > RESAMPLE_NANOS) {
@@ -91,6 +101,10 @@ public final class EntityLight {
 		float targetSky = LightMath.resolve(originalSky, worldSky, smoothSky);
 		boolean teleported = previousCell != EntityLightState.NO_CELL && farApart(previousCell, cell);
 		state.fadeTowards(targetBlock, targetSky, frame, now, teleported);
+		state.probeX = probe.x;
+		state.probeY = probe.y;
+		state.probeZ = probe.z;
+		state.original = original;
 
 		LightStats.entity(started, sampled);
 		return state.packed;
@@ -121,7 +135,7 @@ public final class EntityLight {
 		state.validMask = validMask;
 		state.cell = cell;
 		state.epoch = epoch;
-		state.sampledNanos = now;
+		state.sampledNanos = now - state.resampleJitter;
 		state.overrideConfirmed = false;
 	}
 

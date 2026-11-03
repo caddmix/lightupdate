@@ -51,8 +51,8 @@ public final class ShaderPatcher {
 			if (REPORTED.add(name)) {
 				LightUpdate.LOGGER.info("shader {} has no vanilla lightmap lookup, probably replaced by a resource pack, left untouched", name);
 			}
-		} else {
-			LightUpdate.LOGGER.debug("smoothed the lightmap lookup in {}", name);
+		} else if (REPORTED.add(name)) {
+			LightUpdate.LOGGER.info("smooth lightmap lookup in {}", name);
 		}
 
 		return patched;

@@ -25,11 +25,19 @@ public final class BlockEntityLight {
 			return state.packed;
 		}
 
+		long now = FrameClock.nanos();
+		if (state.settled && original == state.original && FrameClock.continuous(state.nanos)) {
+			state.frame = frame;
+			state.nanos = now;
+			return state.packed;
+		}
+
 		float targetBlock = LightMath.blockLevel(original);
 		float targetSky = LightMath.skyLevel(original);
-		state.fadeTowards(targetBlock, targetSky, frame, FrameClock.nanos(), false);
-		if (state.block == targetBlock && state.sky == targetSky) {
-			// settled, hand back the exact bits so emissive and modded values stay untouched
+		state.fadeTowards(targetBlock, targetSky, frame, now, false);
+		state.original = original;
+		if (state.settled) {
+			// hand back the exact bits so emissive and modded values stay untouched
 			state.packed = original;
 		}
 
@@ -53,6 +61,7 @@ public final class BlockEntityLight {
 			return original;
 		}
 
+		LightStats.doubleBlockMerge();
 		return Math.max(LightMath.blockUnits(a.packed), LightMath.blockUnits(b.packed))
 				| Math.max(LightMath.skyUnits(a.packed), LightMath.skyUnits(b.packed)) << 16;
 	}

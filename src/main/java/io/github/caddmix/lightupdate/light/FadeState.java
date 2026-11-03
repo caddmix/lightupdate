@@ -10,6 +10,10 @@ public class FadeState {
 	public float block;
 	public float sky;
 	public int packed;
+	/** the faded levels reached their target, nothing moves until the target changes */
+	public boolean settled;
+	/** packed light the game handed in last time */
+	public int original;
 
 	/** moves the faded levels toward the target and stores the packed result for this frame */
 	public final void fadeTowards(float targetBlock, float targetSky, int currentFrame, long now, boolean snap) {
@@ -25,5 +29,6 @@ public class FadeState {
 		frame = currentFrame;
 		nanos = now;
 		packed = LightMath.pack(block, sky);
+		settled = block == targetBlock && sky == targetSky;
 	}
 }
