@@ -81,10 +81,11 @@ public final class EntityLight {
 		// a mismatch is either a renderer override or a stale cache, one fresh sample tells them apart
 		if ((originalBlock != worldBlock << 4 || originalSky != worldSky << 4) && !sampled && !state.overrideConfirmed) {
 			sample(state, level, bx, by, bz, cell, epoch, now);
-			state.overrideConfirmed = true;
 			sampled = true;
 			worldBlock = LightMath.cornerBlock(state.corners, center);
 			worldSky = LightMath.cornerSky(state.corners, center);
+			// only a mismatch that survives the fresh sample is an override, a stale cache is fixed now
+			state.overrideConfirmed = originalBlock != worldBlock << 4 || originalSky != worldSky << 4;
 		}
 
 		float smoothBlock = worldBlock;

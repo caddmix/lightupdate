@@ -10,7 +10,7 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** config/lightupdate.json, read once at startup */
+/** config/lightupdate.json, read once at startup, so edits need a game restart */
 public final class LightUpdateConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -26,7 +26,7 @@ public final class LightUpdateConfig {
 	/** time a light change needs to settle, 0 turns the fade off */
 	@SerializedName("fade_ms")
 	public int fadeMs = 250;
-	/** swap the lightmap lookup in vanilla entity shaders, needs a resource reload to change */
+	/** swap the lightmap lookup in vanilla entity shaders */
 	@SerializedName("patch_shaders")
 	public boolean patchShaders = true;
 	/** adds an f3 line with timings, costs two nanoTime calls per entity while on */

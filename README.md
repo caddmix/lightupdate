@@ -24,14 +24,14 @@ controls, lightupdate, toggle smooth light. unbound by default, bind it to flip 
 
 config
 
-config/lightupdate.json, read at startup.
+config/lightupdate.json, read at startup, so restart the game after editing it.
 
 enabled true turns the whole mod on or off.
 entities true smooths mobs, players, item frames and every other entity.
 block_entities true fades chests, signs, banners, beds and the rest.
 spatial_blend true blends the 8 blocks around an entity, false keeps only the time fade.
 fade_ms 250 is the time a light change needs to settle, 0 turns the fade off.
-patch_shaders true swaps the lightmap lookup in vanilla entity shaders, needs f3 t to change.
+patch_shaders true swaps the lightmap lookup in vanilla entity shaders.
 debug_stats false adds an f3 line with updates per second, resample share and nanoseconds per entity.
 
 performance
@@ -46,7 +46,7 @@ tested in a production style launch with sodium 0.8.13, iris 1.8.14 beta 1 (shad
 
 better block entities bakes chests, signs, beds, banners, bells, shulker boxes and decorated pots into terrain while they do not animate. those use terrain light and snap like terrain, the fade only covers them while they animate or when better block entities leaves that type alone.
 
-the light engine change callback works with vanilla and scalablelux. the mod also covers the neighbor sections itself, because scalablelux only reports the changed ones.
+the light engine change callback works with vanilla and scalablelux, and light data the server sends is caught where the client marks those sections dirty. the mod also covers the neighbor sections itself, because scalablelux only reports the changed ones.
 
 building
 
