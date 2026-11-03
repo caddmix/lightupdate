@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "lightupdate",
+	"version": "${version}",
+	"name": "lightupdate",
+	"description": "smooth light on mobs, players and block entities. no more hard light steps at block borders, light changes fade instead of snapping.",
+	"authors": [
+		"caddmix"
+	],
+	"contact": {
+		"sources": "https://github.com/caddmix/lightupdate",
+		"issues": "https://github.com/caddmix/lightupdate/issues"
+	},
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"io.github.caddmix.lightupdate.LightUpdateClient"
+		]
+	},
+	"mixins": [
+		"lightupdate.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.15.11",
+		"minecraft": "1.21.1",
+		"java": ">=21",
+		"fabric-key-binding-api-v1": "*",
+		"fabric-lifecycle-events-v1": "*"
+	}
+}

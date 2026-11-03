@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "lightupdate_harness",
+	"version": "0.0.0",
+	"name": "lightupdate test harness",
+	"description": "scripted test scenes for lightupdate, dev runs only, never shipped",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"io.github.caddmix.lightupdate.harness.HarnessClient"
+		]
+	},
+	"depends": {
+		"lightupdate": "*",
+		"fabric-rendering-v1": "*",
+		"fabric-lifecycle-events-v1": "*"
+	}
+}
