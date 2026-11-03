@@ -147,6 +147,17 @@ public final class HarnessClient implements ClientModInitializer {
 						"tp @p 2.5 -60 0.5 -90 0");
 				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
 			}
+			case "demo" -> {
+				// open flat ground at night with a torch on a fence next to the path, close to the bug clip
+				run(mc,
+						"setblock 24 -60 2 minecraft:oak_fence",
+						"setblock 24 -59 2 minecraft:torch",
+						"setblock 12 -60 -3 minecraft:oak_log",
+						"setblock 12 -59 -3 minecraft:oak_log",
+						"setblock 30 -60 3 minecraft:oak_log",
+						"tp @p 8.5 -60 0.5 -90 0");
+				mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+			}
 			case "sweep" -> {
 				run(mc,
 						"fill -2 -61 -4 34 -55 4 minecraft:stone",
@@ -193,6 +204,7 @@ public final class HarnessClient implements ClientModInitializer {
 	private void runScene(Minecraft mc) {
 		switch (SCENE) {
 			case "candle" -> runCandle(mc);
+			case "demo" -> runDemo(mc);
 			case "lamp" -> runLamp(mc);
 			case "crowd" -> runCrowd(mc);
 			case "sweep" -> runSweep(mc);
@@ -285,6 +297,44 @@ public final class HarnessClient implements ClientModInitializer {
 			if (step == 8) {
 				Screenshot.grab(mc.gameDirectory, "harness-sweep-" + phase + ".png", mc.getMainRenderTarget(), component -> { });
 			}
+		}
+	}
+
+	/** walks past the torch and back, vanilla first, then with lightupdate, logging wall clock times for the video cut */
+	private void runDemo(Minecraft mc) {
+		if (ticksInState == 1) {
+			startPhase(mc, "vanilla", false);
+			log("demo phase vanilla at " + System.currentTimeMillis());
+			walkLeg = 0;
+		}
+
+		if (phase.equals("vanilla") || phase.equals("smooth")) {
+			double x = mc.player.getX();
+			if (walkLeg == 0) {
+				walk(mc, -90f);
+				if (x >= 26.0) {
+					walkLeg = 1;
+				}
+			} else if (walkLeg == 1) {
+				walk(mc, 90f);
+				if (x <= 9.0) {
+					walkLeg = 2;
+					mc.options.keyUp.setDown(false);
+					log("demo phase " + phase + " end at " + System.currentTimeMillis());
+					if (phase.equals("vanilla")) {
+						phase = "pause";
+						ticksInState = 1000;
+					} else {
+						endScene(mc);
+					}
+				}
+			}
+		} else if (phase.equals("pause") && ticksInState == 1030) {
+			run(mc, "tp @p 8.5 -60 0.5 -90 0");
+		} else if (phase.equals("pause") && ticksInState == 1060) {
+			startPhase(mc, "smooth", true);
+			log("demo phase smooth at " + System.currentTimeMillis());
+			walkLeg = 0;
 		}
 	}
 
